@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>AttendPro · Location Punch</title>
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #eef3f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+            margin: 0;
+        }
+
+        .app-container {
+            max-width: 420px;
+            width: 100%;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 20px 40px -12px rgba(0, 20, 30, 0.30);
+            padding: 0;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            min-height: 500px;
+        }
+
+        /* ----- LOGIN OVERLAY ----- */
+        .login-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 32px 24px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            transition: opacity 0.4s ease, transform 0.3s ease;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+        }
+
+        .login-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.96);
+        }
+
+        .signup-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            animation: fadeSlideIn 0.3s ease;
+        }
+
+        .signup-view.active {
+            display: flex;
+        }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-view {
+            display: flex;
+            flex-direction: column;
+            animation: fadeSlideIn 0.3s ease;
+        }
+
+        .login-view.hidden {
+            display: none;
+        }
+
+        .login-lock {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-lock i {
+            font-size: 44px;
+            color: #1a5f8b;
+            background: #e9f0f8;
+            padding: 18px;
+            border-radius: 60px;
+            box-shadow: 0 8px 16px -8px rgba(0, 40, 70, 0.15);
+        }
+
+        .login-lock h2 {
+            margin-top: 12px;
+            font-weight: 700;
+            color: #0b2a3c;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .login-lock p {
+            color: #5a7489;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .login-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 12px 0 16px;
+        }
+
+        .login-field {
+            display: flex;
+            align-items: center;
+            background: #f4f8fe;
+            border-radius: 60px;
+            padding: 4px 18px 4px 20px;
+            border: 1px solid #dae6f2;
+            transition: 0.2s;
+        }
+
+        .login-field:focus-within {
+            border-color: #2a7de1;
+            box-shadow: 0 0 0 3px rgba(42, 125, 225, 0.15);
+            background: white;
+        }
+
+        .login-field i {
+            color: #6a86a0;
+            font-size: 17px;
+            width: 28px;
+            flex-shrink: 0;
+        }
+
+        .login-field input {
+            border: none;
+            padding: 14px 6px 14px 8px;
+            width: 100%;
+            font-size: 15px;
+            background: transparent;
+            outline: none;
+            color: #153e56;
+        }
+
+        .login-field input::placeholder {
+            color: #9aafc0;
+            font-weight: 400;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #1a5f8b;
+            border: none;
+            border-radius: 60px;
+            padding: 15px;
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.15s;
+            cursor: pointer;
+            box-shadow: 0 6px 12px -6px rgba(20, 80, 130, 0.3);
+            margin-top: 4px;
+        }
+
+        .login-btn:active {
+            background: #0e4a70;
+            transform: scale(0.97);
+        }
+
+        .login-error {
+            color: #c84848;
+            background: #ffefef;
+            border-radius: 40px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+            border: 1px solid #fad5d5;
+        }
+
+        .login-error.show {
+            display: block;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 14px 0 12px;
+            color: #9ab0c4;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #dde6ef;
+        }
+
+        .toggle-signup-btn {
+            background: transparent;
+            border: none;
+            color: #2a7de1;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 30px;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0 auto;
+        }
+
+        .toggle-signup-btn:active {
+            background: #e3ecf5;
+            transform: scale(0.96);
+        }
+
+        /* ----- SIGN-UP FORM ----- */
+        .signup-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: #51758f;
+            font-size: 20px;
+            padding: 6px 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .back-btn:active {
+            background: #e3ecf5;
+            transform: scale(0.94);
+        }
+
+        .signup-header h2 {
+            font-weight: 700;
+            color: #0b2a3c;
+            font-size: 22px;
+            letter-spacing: -0.3px;
+        }
+
+        .signup-header h2 i {
+            color: #2a7de1;
+            margin-right: 8px;
+        }
+
+        .signup-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 6px 0 14px;
+        }
+
+        .signup-fields .login-field {
+            background: #f8fcff;
+        }
+
+        .signup-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .btn {
+            flex: 1;
+            background: white;
+            border: 1px solid #ccdbe9;
+            border-radius: 60px;
+            padding: 14px 8px;
+            font-weight: 600;
+            font-size: 15px;
+            color: #1d4b69;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.15s;
+            cursor: pointer;
+        }
+
+        .btn-success {
+            background: #1f8b4c;
+            border: 1px solid #1f8b4c;
+            color: white;
+            box-shadow: 0 4px 8px -4px rgba(20, 120, 60, 0.25);
+        }
+
+        .btn-success:active {
+            background: #16703d;
+            transform: scale(0.96);
+        }
+
+        .btn-danger {
+            background: #c84848;
+            border: 1px solid #c84848;
+            color: white;
+        }
+
+        .btn-danger:active {
+            background: #a33a3a;
+            transform: scale(0.96);
+        }
+
+        .btn i {
+            font-size: 15px;
+        }
+
+        .signup-feedback {
+            font-size: 13px;
+            color: #1f8b4c;
+            background: #e3f5ea;
+            padding: 8px 14px;
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            justify-content: center;
+            border: 1px solid #b8e0c9;
+        }
+
+        .signup-feedback.show {
+            display: flex;
+        }
+
+        .signup-feedback.error {
+            background: #ffefef;
+            color: #c84848;
+            border-color: #fad5d5;
+        }
+
+        .signup-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .signup-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .signup-scroll::-webkit-scrollbar-track {
+            background: #e7eef6;
+            border-radius: 20px;
+        }
+        .signup-scroll::-webkit-scrollbar-thumb {
+            background: #b8cee2;
+            border-radius: 20px;
+        }
+
+        /* ----- MAIN APP - CLEAN HOME PAGE ----- */
+        .app-content {
+            opacity: 1;
+            transition: opacity 0.3s;
+            padding: 0 20px 24px 20px;
+        }
+
+        /* Header with gradient */
+        .app-header {
+            background: linear-gradient(135deg, #1a5f8b 0%, #2a7de1 100%);
+            margin: 0 -20px 0 -20px;
+            padding: 20px 20px 16px 20px;
+            border-radius: 0 0 32px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .app-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            padding: 8px 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+            backdrop-filter: blur(4px);
+        }
+
+        .menu-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.92);
+        }
+
+        .app-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .app-header h1 i {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 22px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            font-size: 18px;
+            padding: 8px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+            backdrop-filter: blur(4px);
+        }
+
+        .logout-btn:active {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(0.94);
+        }
+
+        /* User greeting */
+        .user-greeting {
+            padding: 16px 4px 8px 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-greeting .greeting-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0b2a3c;
+        }
+
+        .user-greeting .greeting-text span {
+            color: #1a5f8b;
+        }
+
+        .user-greeting .date-badge {
+            background: #eef3fa;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e4e6b;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 16px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: #f8fcff;
+            border-radius: 16px;
+            padding: 12px 14px;
+            border: 1px solid #e9eef3;
+            text-align: center;
+        }
+
+        .stat-card .stat-number {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0b2a3c;
+        }
+
+        .stat-card .stat-label {
+            font-size: 11px;
+            color: #7a94a8;
+            margin-top: 2px;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 16px;
+            color: #2a7de1;
+            margin-bottom: 2px;
+        }
+
+        /* ----- PUNCH SECTION - Clean Card ----- */
+        .punch-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            margin: 4px 0 12px 0;
+            border: 1px solid #e9eef3;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .punch-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .punch-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .punch-status-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .punch-status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .punch-status-dot.checked-in {
+            background: #1f8b4c;
+            box-shadow: 0 0 12px rgba(31, 139, 76, 0.3);
+        }
+
+        .punch-status-dot.checked-out {
+            background: #c84848;
+            box-shadow: 0 0 12px rgba(200, 72, 72, 0.3);
+        }
+
+        .punch-status-dot.idle {
+            background: #9aafc0;
+        }
+
+        .punch-status-text {
+            font-weight: 600;
+            font-size: 16px;
+            color: #0b2a3c;
+        }
+
+        .punch-time-display {
+            font-size: 14px;
+            color: #5a7489;
+            font-weight: 500;
+            background: #f5f8fb;
+            padding: 4px 14px;
+            border-radius: 30px;
+        }
+
+        .punch-location-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0 4px 0;
+            flex-wrap: wrap;
+        }
+
+        .punch-location-row i {
+            color: #7a94a8;
+            font-size: 14px;
+        }
+
+        .punch-location-row .location-text {
+            font-size: 13px;
+            color: #5a7489;
+            flex: 1;
+        }
+
+        .location-permission-btn {
+            background: transparent;
+            border: 1px solid #2a7de1;
+            color: #2a7de1;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+
+        .location-permission-btn:active {
+            background: #e3ecf5;
+            transform: scale(0.95);
+        }
+
+        .location-status-text {
+            font-size: 11px;
+            color: #7a94a8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+            padding-top: 2px;
+        }
+
+        .location-status-text .fa-check-circle {
+            color: #1f8b4c;
+        }
+
+        .location-status-text .fa-exclamation-circle {
+            color: #c84848;
+        }
+
+        .punch-btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .punch-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 60px;
+            border: none;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .punch-btn:active {
+            transform: scale(0.95);
+        }
+
+        .punch-btn.check-in {
+            background: #1f8b4c;
+            color: white;
+            box-shadow: 0 4px 12px rgba(31, 139, 76, 0.25);
+        }
+
+        .punch-btn.check-in:active {
+            background: #16703d;
+        }
+
+        .punch-btn.check-out {
+            background: #c84848;
+            color: white;
+            box-shadow: 0 4px 12px rgba(200, 72, 72, 0.25);
+        }
+
+        .punch-btn.check-out:active {
+            background: #a33a3a;
+        }
+
+        .punch-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .footer-note {
+            text-align: center;
+            color: #879eb2;
+            font-size: 12px;
+            margin-top: 12px;
+            letter-spacing: 0.3px;
+            padding: 0 4px;
+        }
+
+        .footer-note i {
+            color: #2a7de1;
+        }
+
+        .center-flex {
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ----- SIDEBAR ----- */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.open {
+            display: block;
+            opacity: 1;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -380px;
+            width: 340px;
+            max-width: 90%;
+            height: 100%;
+            background: white;
+            z-index: 101;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 24px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #e9eef3;
+        }
+
+        .sidebar-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0b2a3c;
+        }
+
+        .sidebar-header h3 i {
+            color: #2a7de1;
+            margin-right: 8px;
+        }
+
+        .close-sidebar-btn {
+            background: transparent;
+            border: none;
+            color: #51758f;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 30px;
+            transition: 0.15s;
+        }
+
+        .close-sidebar-btn:active {
+            background: #e3ecf5;
+            transform: scale(0.92);
+        }
+
+        .admin-badge {
+            background: #1a5f8b;
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-left: 6px;
+        }
+
+        /* Calendar Section */
+        .calendar-section {
+            background: #f8fcff;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e9eef3;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .calendar-section-header h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0b2a3c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-section-header h4 i {
+            color: #2a7de1;
+        }
+
+        .calendar-toggle-icon {
+            color: #7a94a8;
+            transition: transform 0.3s ease;
+            font-size: 14px;
+        }
+
+        .calendar-toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .calendar-content {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            padding-top: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+        }
+
+        .calendar-content.expanded {
+            max-height: 600px;
+            opacity: 1;
+            margin-top: 8px;
+            padding-top: 4px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-header .month-year {
+            font-weight: 700;
+            font-size: 16px;
+            color: #0b2a3c;
+        }
+
+        .calendar-nav-btn {
+            background: transparent;
+            border: none;
+            color: #2a7de1;
+            font-size: 18px;
+            padding: 4px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .calendar-nav-btn:active {
+            background: #e3ecf5;
+            transform: scale(0.92);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+
+        .calendar-grid .day-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #7a94a8;
+            padding: 4px 0;
+        }
+
+        .calendar-grid .day-cell {
+            font-size: 13px;
+            padding: 6px 2px;
+            border-radius: 30px;
+            cursor: default;
+            position: relative;
+            transition: 0.15s;
+        }
+
+        .calendar-grid .day-cell.empty {
+            color: #b7cddf;
+        }
+
+        .calendar-grid .day-cell.has-event {
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .calendar-grid .day-cell.has-event.in {
+            color: #1f8b4c;
+            background: #e8f5ee;
+        }
+
+        .calendar-grid .day-cell.has-event.out {
+            color: #c84848;
+            background: #f5e8e8;
+        }
+
+        .calendar-grid .day-cell.has-event.both {
+            color: #2a7de1;
+            background: #e8eff8;
+        }
+
+        .calendar-grid .day-cell.today {
+            border: 2px solid #2a7de1;
+            font-weight: 700;
+        }
+
+        .calendar-grid .day-cell .event-dot {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        .event-dot.dot-in {
+            background: #1f8b4c;
+        }
+
+        .event-dot.dot-out {
+            background: #c84848;
+        }
+
+        .event-dot.dot-both {
+            background: #2a7de1;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 8px;
+            font-size: 11px;
+            color: #5a7489;
+            flex-wrap: wrap;
+        }
+
+        .calendar-legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .calendar-legend .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend-dot.legend-in {
+            background: #1f8b4c;
+        }
+        .legend-dot.legend-out {
+            background: #c84848;
+        }
+        .legend-dot.legend-both {
+            background: #2a7de1;
+        }
+
+        .selected-date-info {
+            font-size: 12px;
+            color: #5a7489;
+            text-align: center;
+            margin-top: 6px;
+            padding: 6px;
+            background: #f0f5fa;
+            border-radius: 30px;
+            display: none;
+        }
+
+        .selected-date-info.show {
+            display: block;
+        }
+
+        /* Employee Grid - Admin only */
+        .employee-grid-section {
+            margin-top: 4px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .employee-grid-section .section-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5a7489;
+            padding: 8px 0 8px 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            overflow-y: auto;
+            padding: 2px 0 8px 0;
+        }
+
+        .employee-grid .emp-card {
+            background: #f8fcff;
+            border-radius: 16px;
+            padding: 10px 6px;
+            text-align: center;
+            border: 1px solid #e9eef3;
+            transition: 0.15s;
+            position: relative;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .employee-grid .emp-card:active {
+            transform: scale(0.95);
+            background: #eef5fe;
+        }
+
+        .employee-grid .emp-card .emp-avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #d7e3f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1f4970;
+            font-weight: 600;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .employee-grid .emp-card .emp-name-small {
+            font-size: 11px;
+            font-weight: 500;
+            color: #0c2d40;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .employee-grid .emp-card .emp-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
+        .emp-status-dot.status-in {
+            background: #1f8b4c;
+        }
+
+        .emp-status-dot.status-out {
+            background: #c84848;
+        }
+
+        .emp-status-dot.status-idle {
+            background: #9aafc0;
+        }
+
+        .employee-grid .emp-card .emp-role-small {
+            font-size: 9px;
+            color: #7a94a8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .employee-grid .emp-card .emp-time-small {
+            font-size: 8px;
+            color: #7a94a8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .employee-grid .emp-card.card-in {
+            border-color: #1f8b4c;
+            background: #f0faf4;
+        }
+
+        .employee-grid .emp-card.card-out {
+            border-color: #c84848;
+            background: #faf0f0;
+        }
+
+        .employee-grid .emp-card.card-idle {
+            border-color: #e9eef3;
+            background: #f8fcff;
+        }
+
+        .employee-grid .emp-card.card-in .emp-name-small {
+            color: #1f8b4c;
+        }
+
+        .employee-grid .emp-card.card-out .emp-name-small {
+            color: #c84848;
+        }
+
+        .employee-grid-empty {
+            text-align: center;
+            color: #6d8aa3;
+            padding: 30px 10px;
+            font-size: 14px;
+            grid-column: 1 / -1;
+        }
+
+        .employee-grid-empty i {
+            font-size: 34px;
+            color: #b7cddf;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .employee-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .employee-grid::-webkit-scrollbar-track {
+            background: #e7eef6;
+            border-radius: 20px;
+        }
+        .employee-grid::-webkit-scrollbar-thumb {
+            background: #b8cee2;
+            border-radius: 20px;
+        }
+
+        .admin-only-message {
+            text-align: center;
+            color: #7a94a8;
+            font-size: 13px;
+            padding: 20px 10px;
+            background: #f5f8fb;
+            border-radius: 16px;
+            margin: 4px 0;
+        }
+
+        .admin-only-message i {
+            color: #2a7de1;
+            margin-right: 6px;
+        }
+
+        .sidebar-footer {
+            padding-top: 12px;
+            border-top: 1px solid #e9eef3;
+            margin-top: 8px;
+        }
+
+        .sidebar-footer .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        @media (max-height: 700px) {
+            .signup-scroll { max-height: 300px; }
+            .login-lock i { font-size: 36px; padding: 14px; }
+            .login-lock h2 { font-size: 20px; margin-top: 8px; }
+            .sidebar { width: 300px; }
+            .employee-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            .employee-grid .emp-card { padding: 8px 4px; min-height: 60px; }
+            .stat-card .stat-number { font-size: 18px; }
+            .punch-card { padding: 16px; }
+        }
+
+        @media (max-width: 400px) {
+            .app-content { padding: 0 16px 20px 16px; }
+            .app-header { padding: 16px 16px 14px 16px; }
+            .app-header h1 { font-size: 19px; }
+            .sidebar { width: 280px; padding: 18px 14px; }
+            .punch-btn { font-size: 14px; padding: 12px 16px; }
+            .calendar-grid .day-cell { font-size: 12px; padding: 4px 1px; }
+            .employee-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-row { gap: 8px; }
+            .stat-card { padding: 10px; }
+            .stat-card .stat-number { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container" role="main">
+    <!-- LOGIN OVERLAY -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-view" id="loginView">
+            <div class="login-lock">
+                <i class="fas fa-lock"></i>
+                <h2>Welcome back</h2>
+                <p>Sign in or register a new employee</p>
+            </div>
+            <div class="login-input-group">
+                <div class="login-field">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="loginUserInput" placeholder="Username" value="" autocomplete="off">
+                </div>
+                <div class="login-field">
+                    <i class="fas fa-key"></i>
+                    <input type="password" id="loginPassInput" placeholder="Password" value="">
+                </div>
+            </div>
+            <button class="login-btn" id="loginBtn"><i class="fas fa-arrow-right-to-bracket"></i> Sign in</button>
+            <div class="login-error" id="loginError"><i class="fas fa-exclamation-circle" style="margin-right:6px;"></i> Invalid credentials</div>
+            <div class="divider">or</div>
+            <div class="center-flex">
+                <button class="toggle-signup-btn" id="goToSignupBtn">
+                    <i class="fas fa-user-plus"></i> Register new employee
+                </button>
+            </div>
+        </div>
+
+        <div class="signup-view" id="signupView">
+            <div class="signup-header">
+                <button class="back-btn" id="backToLoginBtn"><i class="fas fa-arrow-left"></i></button>
+                <h2><i class="fas fa-user-plus"></i> Employee Sign-up</h2>
+            </div>
+            <p style="color: #5a7489; font-size: 14px; margin-bottom: 8px;">Enter the employee's details</p>
+            <div class="signup-scroll">
+                <div class="signup-fields">
+                    <div class="login-field"><i class="fas fa-user"></i><input type="text" id="signupNameInput" placeholder="Full name *" autocomplete="off"></div>
+                    <div class="login-field"><i class="fas fa-briefcase"></i><input type="text" id="signupRoleInput" placeholder="Role (e.g. Developer)" autocomplete="off"></div>
+                    <div class="login-field"><i class="fas fa-envelope"></i><input type="email" id="signupEmailInput" placeholder="Email address" autocomplete="off"></div>
+                    <div class="login-field"><i class="fas fa-phone"></i><input type="tel" id="signupMobileInput" placeholder="Mobile number" autocomplete="off"></div>
+                    <div class="login-field"><i class="fas fa-map-marker-alt"></i><input type="text" id="signupAddressInput" placeholder="Address" autocomplete="off"></div>
+                    <div class="login-field"><i class="fas fa-key"></i><input type="password" id="signupPasswordInput" placeholder="Password *" autocomplete="new-password"></div>
+                </div>
+            </div>
+            <div class="signup-actions">
+                <button class="btn btn-success" id="signupBtn"><i class="fas fa-user-check"></i> Sign up</button>
+                <button class="btn btn-danger" id="clearAllBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
+            </div>
+            <div class="signup-feedback" id="signupFeedback"><i class="fas fa-check-circle"></i><span id="feedbackMsg">Employee added!</span></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app-content" id="appContent">
+        <!-- Header with gradient -->
+        <div class="app-header">
+            <div class="app-header-left">
+                <button class="menu-btn" id="menuBtn" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+                <h1><i class="fas fa-clipboard-check"></i> AttendPro</h1>
+            </div>
+            <button class="logout-btn" id="logoutBtn" aria-label="Logout"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+
+        <!-- User Greeting -->
+        <div class="user-greeting">
+            <div class="greeting-text">👋 Hello, <span id="welcomeUser">Employee</span></div>
+            <div class="date-badge" id="todayDate"></div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-number" id="employeeCount">0</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-number" id="checkedInCount">0</div>
+                <div class="stat-label">Checked In</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-number" id="activeCount">0</div>
+                <div class="stat-label">Active Now</div>
+            </div>
+        </div>
+
+        <!-- Punch Card -->
+        <div class="punch-card" id="punchCard">
+            <div class="punch-status-row">
+                <div class="punch-status-left">
+                    <span class="punch-status-dot idle" id="statusDot"></span>
+                    <span class="punch-status-text" id="punchStatusText">Not checked in</span>
+                </div>
+                <span class="punch-time-display" id="punchTimeDisplay">--:--:--</span>
+            </div>
+
+            <div class="punch-location-row">
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="location-text" id="locationText">Location: Unknown</span>
+                <button class="location-permission-btn" id="requestLocationBtn"><i class="fas fa-location-dot"></i> Get Location</button>
+                <div class="location-status-text" id="locationStatus">
+                    <i class="fas fa-exclamation-circle"></i> Permission required
+                </div>
+            </div>
+
+            <div class="punch-btn-row">
+                <button class="punch-btn check-in" id="punchInBtn"><i class="fas fa-sign-in-alt"></i> Check In</button>
+                <button class="punch-btn check-out" id="punchOutBtn" disabled><i class="fas fa-sign-out-alt"></i> Check Out</button>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <i class="fas fa-map-pin"></i> Location-based check in/out
+        </div>
+    </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h3><i class="fas fa-users"></i> Employees <span class="admin-badge" id="adminBadge" style="display:none;">Admin</span></h3>
+        <button class="close-sidebar-btn" id="closeSidebarBtn"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Calendar Section -->
+    <div class="calendar-section" id="calendarSection">
+        <div class="calendar-section-header" id="calendarToggle">
+            <h4><i class="fas fa-calendar-alt"></i> Attendance Calendar</h4>
+            <i class="fas fa-chevron-down calendar-toggle-icon collapsed" id="calendarToggleIcon"></i>
+        </div>
+        <div class="calendar-content" id="calendarContent">
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" id="prevMonthBtn"><i class="fas fa-chevron-left"></i></button>
+                <span class="month-year" id="monthYearDisplay">January 2026</span>
+                <button class="calendar-nav-btn" id="nextMonthBtn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-legend">
+                <span><span class="legend-dot legend-in"></span> Check In</span>
+                <span><span class="legend-dot legend-out"></span> Check Out</span>
+                <span><span class="legend-dot legend-both"></span> Both</span>
+            </div>
+            <div class="selected-date-info" id="selectedDateInfo">
+                <span id="selectedDateDetails">Select a date to see details</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Grid -->
+    <div class="employee-grid-section" id="employeeGridSection">
+        <div class="section-label"><i class="fas fa-user-tie"></i> Team Status</div>
+        <div class="employee-grid" id="employeeGrid"></div>
+        <div class="admin-only-message" id="adminOnlyMessage">
+            <i class="fas fa-lock"></i> Employee list visible to Admin only
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+        <button class="btn btn-danger" id="sidebarClearAllBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- STATE ----------
+        let employees = [];
+        let isLoggedIn = false;
+        let userCredentials = [];
+        let currentUser = null;
+        let isCheckedIn = false;
+        let checkInTime = null;
+        let checkOutTime = null;
+        let currentLocation = null;
+        let locationWatchId = null;
+        let hasLocationPermission = false;
+
+        // Calendar state
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = null;
+        let isCalendarCollapsed = true;
+
+        // DOM refs - Login
+        const loginOverlay = document.getElementById('loginOverlay');
+        const loginView = document.getElementById('loginView');
+        const signupView = document.getElementById('signupView');
+        const loginUserInput = document.getElementById('loginUserInput');
+        const loginPassInput = document.getElementById('loginPassInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const goToSignupBtn = document.getElementById('goToSignupBtn');
+        const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+        // DOM refs - Signup
+        const signupNameInput = document.getElementById('signupNameInput');
+        const signupRoleInput = document.getElementById('signupRoleInput');
+        const signupEmailInput = document.getElementById('signupEmailInput');
+        const signupMobileInput = document.getElementById('signupMobileInput');
+        const signupAddressInput = document.getElementById('signupAddressInput');
+        const signupPasswordInput = document.getElementById('signupPasswordInput');
+        const signupBtn = document.getElementById('signupBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const signupFeedback = document.getElementById('signupFeedback');
+        const feedbackMsg = document.getElementById('feedbackMsg');
+
+        // DOM refs - Punch
+        const punchInBtn = document.getElementById('punchInBtn');
+        const punchOutBtn = document.getElementById('punchOutBtn');
+        const punchStatusText = document.getElementById('punchStatusText');
+        const punchTimeDisplay = document.getElementById('punchTimeDisplay');
+        const locationText = document.getElementById('locationText');
+        const locationStatus = document.getElementById('locationStatus');
+        const statusDot = document.getElementById('statusDot');
+        const requestLocationBtn = document.getElementById('requestLocationBtn');
+        const welcomeUser = document.getElementById('welcomeUser');
+
+        // DOM refs - Stats
+        const employeeCountSpan = document.getElementById('employeeCount');
+        const checkedInCountSpan = document.getElementById('checkedInCount');
+        const activeCountSpan = document.getElementById('activeCount');
+        const todayDateSpan = document.getElementById('todayDate');
+
+        // DOM refs - Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuBtn = document.getElementById('menuBtn');
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+        const adminBadge = document.getElementById('adminBadge');
+        const adminOnlyMessage = document.getElementById('adminOnlyMessage');
+        const employeeGridSection = document.getElementById('employeeGridSection');
+        const employeeGrid = document.getElementById('employeeGrid');
+        const sidebarClearAllBtn = document.getElementById('sidebarClearAllBtn');
+
+        // DOM refs - Calendar
+        const monthYearDisplay = document.getElementById('monthYearDisplay');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const selectedDateInfo = document.getElementById('selectedDateInfo');
+        const selectedDateDetails = document.getElementById('selectedDateDetails');
+        const calendarToggle = document.getElementById('calendarToggle');
+        const calendarContent = document.getElementById('calendarContent');
+        const calendarToggleIcon = document.getElementById('calendarToggleIcon');
+
+        // ---------- NAVIGATION ----------
+        function showLoginView() {
+            loginView.classList.remove('hidden');
+            signupView.classList.remove('active');
+            loginError.classList.remove('show');
+            signupFeedback.classList.remove('show', 'error');
+            loginUserInput.value = '';
+            loginPassInput.value = '';
+        }
+
+        function showSignupView() {
+            loginView.classList.add('hidden');
+            signupView.classList.add('active');
+            signupFeedback.classList.remove('show', 'error');
+            signupNameInput.focus();
+        }
+
+        // ---------- SIDEBAR ----------
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            renderSidebar();
+            renderCalendar();
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // ---------- HELPERS ----------
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+
+        function generateId() {
+            return Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+        }
+
+        function formatTime(date) {
+            if (!date) return '--:--:--';
+            const d = new Date(date);
+            return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function formatDate(date) {
+            if (!date) return '';
+            const d = new Date(date);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showFeedback(msg, isSuccess = true) {
+            feedbackMsg.textContent = msg || 'Employee added!';
+            signupFeedback.classList.add('show');
+            if (!isSuccess) {
+                signupFeedback.classList.add('error');
+            } else {
+                signupFeedback.classList.remove('error');
+            }
+            setTimeout(() => {
+                signupFeedback.classList.remove('show', 'error');
+            }, 3000);
+        }
+
+        function getTodayDate() {
+            const now = new Date();
+            return now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        // ---------- CALENDAR TOGGLE ----------
+        function toggleCalendar() {
+            isCalendarCollapsed = !isCalendarCollapsed;
+            if (isCalendarCollapsed) {
+                calendarContent.classList.remove('expanded');
+                calendarToggleIcon.classList.add('collapsed');
+            } else {
+                calendarContent.classList.add('expanded');
+                calendarToggleIcon.classList.remove('collapsed');
+                renderCalendar();
+            }
+        }
+
+        // ---------- CALENDAR ----------
+        function renderCalendar() {
+            if (isCalendarCollapsed) return;
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            monthYearDisplay.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const today = new Date();
+
+            let html = '';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayNames.forEach(name => {
+                html += `<div class="day-name">${name}</div>`;
+            });
+
+            const eventMap = {};
+            employees.forEach(emp => {
+                if (emp.checkIn) {
+                    const d = new Date(emp.checkIn);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        const key = d.getDate();
+                        if (!eventMap[key]) eventMap[key] = { in: false, out: false };
+                        eventMap[key].in = true;
+                    }
+                }
+                if (emp.checkOut) {
+                    const d = new Date(emp.checkOut);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        const key = d.getDate();
+                        if (!eventMap[key]) eventMap[key] = { in: false, out: false };
+                        eventMap[key].out = true;
+                    }
+                }
+            });
+
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="day-cell empty"></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+                const hasEvent = eventMap[day];
+                let classes = 'day-cell';
+                if (isToday) classes += ' today';
+                if (hasEvent) {
+                    classes += ' has-event';
+                    if (hasEvent.in && hasEvent.out) classes += ' both';
+                    else if (hasEvent.in) classes += ' in';
+                    else if (hasEvent.out) classes += ' out';
+                }
+
+                let eventDot = '';
+                if (hasEvent) {
+                    if (hasEvent.in && hasEvent.out) eventDot = '<span class="event-dot dot-both"></span>';
+                    else if (hasEvent.in) eventDot = '<span class="event-dot dot-in"></span>';
+                    else if (hasEvent.out) eventDot = '<span class="event-dot dot-out"></span>';
+                }
+
+                html += `<div class="${classes}" data-day="${day}">${day}${eventDot}</div>`;
+            }
+
+            calendarGrid.innerHTML = html;
+
+            document.querySelectorAll('.day-cell.has-event').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    const day = parseInt(this.dataset.day);
+                    showDayDetails(day);
+                });
+            });
+
+            if (selectedDate) {
+                const day = new Date(selectedDate).getDate();
+                if (day <= daysInMonth) {
+                    showDayDetails(day);
+                } else {
+                    selectedDateInfo.classList.remove('show');
+                }
+            }
+        }
+
+        function showDayDetails(day) {
+            const dateObj = new Date(currentYear, currentMonth, day);
+            selectedDate = dateObj;
+
+            let details = [];
+            employees.forEach(emp => {
+                let empDetails = [];
+                if (emp.checkIn) {
+                    const d = new Date(emp.checkIn);
+                    if (d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        empDetails.push(`✅ ${emp.name} checked in at ${formatTime(emp.checkIn)}`);
+                    }
+                }
+                if (emp.checkOut) {
+                    const d = new Date(emp.checkOut);
+                    if (d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        empDetails.push(`❌ ${emp.name} checked out at ${formatTime(emp.checkOut)}`);
+                    }
+                }
+                if (empDetails.length > 0) {
+                    details.push(empDetails.join('<br>'));
+                }
+            });
+
+            if (details.length > 0) {
+                selectedDateDetails.innerHTML = `<strong>${formatDate(dateObj)}</strong><br>${details.join('<br>')}`;
+                selectedDateInfo.classList.add('show');
+            } else {
+                selectedDateDetails.innerHTML = `<strong>${formatDate(dateObj)}</strong><br>No activity recorded`;
+                selectedDateInfo.classList.add('show');
+            }
+        }
+
+        // ---------- LOCATION ----------
+        function requestLocationPermission() {
+            if (!navigator.geolocation) {
+                locationStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Geolocation not supported';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    hasLocationPermission = true;
+                    currentLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+                    updateLocationUI();
+                    locationStatus.innerHTML = '<i class="fas fa-check-circle"></i> Location access granted';
+                    
+                    if (locationWatchId) {
+                        navigator.geolocation.clearWatch(locationWatchId);
+                    }
+                    locationWatchId = navigator.geolocation.watchPosition(
+                        function(pos) {
+                            currentLocation = {
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy
+                            };
+                            updateLocationUI();
+                        },
+                        function(err) {
+                            console.warn('Location watch error:', err);
+                        },
+                        { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 }
+                    );
+                },
+                function(error) {
+                    hasLocationPermission = false;
+                    currentLocation = null;
+                    locationStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Permission denied: ${error.message}`;
+                    updateLocationUI();
+                },
+                { enableHighAccuracy: true, timeout: 30000 }
+            );
+        }
+
+        function updateLocationUI() {
+            if (currentLocation) {
+                locationText.textContent = `📍 ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`;
+                locationText.style.color = '#1f8b4c';
+            } else {
+                locationText.textContent = '📍 Location: Unknown';
+                locationText.style.color = '#7a94a8';
+            }
+        }
+
+        // ---------- CHECK IN/OUT ----------
+        function checkIn() {
+            if (!hasLocationPermission || !currentLocation) {
+                alert('Please enable location access before checking in.');
+                requestLocationPermission();
+                return;
+            }
+
+            if (isCheckedIn) {
+                alert('Already checked in!');
+                return;
+            }
+
+            const now = new Date();
+            isCheckedIn = true;
+            checkInTime = now;
+            checkOutTime = null;
+
+            if (currentUser) {
+                const emp = employees.find(e => e.name === currentUser);
+                if (emp) {
+                    emp.checkIn = now.toISOString();
+                    emp.checkOut = null;
+                    emp.lastAction = 'in';
+                    emp.punchLocation = { ...currentLocation };
+                }
+            }
+
+            updatePunchUI();
+            updateStats();
+            renderSidebar();
+            renderCalendar();
+            showPunchNotification('✅ Checked IN at ' + formatTime(now));
+        }
+
+        function checkOut() {
+            if (!isCheckedIn) {
+                alert('Not checked in!');
+                return;
+            }
+
+            const now = new Date();
+            isCheckedIn = false;
+            checkOutTime = now;
+
+            if (currentUser) {
+                const emp = employees.find(e => e.name === currentUser);
+                if (emp) {
+                    emp.checkOut = now.toISOString();
+                    emp.lastAction = 'out';
+                    emp.punchLocation = { ...currentLocation };
+                }
+            }
+
+            updatePunchUI();
+            updateStats();
+            renderSidebar();
+            renderCalendar();
+            showPunchNotification('✅ Checked OUT at ' + formatTime(now));
+        }
+
+        function updatePunchUI() {
+            if (isCheckedIn) {
+                punchStatusText.textContent = 'Checked In';
+                statusDot.className = 'punch-status-dot checked-in';
+                punchInBtn.disabled = true;
+                punchOutBtn.disabled = false;
+                punchTimeDisplay.textContent = 'In: ' + formatTime(checkInTime);
+            } else if (checkOutTime) {
+                punchStatusText.textContent = 'Checked Out';
+                statusDot.className = 'punch-status-dot checked-out';
+                punchInBtn.disabled = false;
+                punchOutBtn.disabled = true;
+                punchTimeDisplay.textContent = 'Out: ' + formatTime(checkOutTime);
+            } else {
+                punchStatusText.textContent = 'Not checked in';
+                statusDot.className = 'punch-status-dot idle';
+                punchInBtn.disabled = false;
+                punchOutBtn.disabled = true;
+                punchTimeDisplay.textContent = '--:--:--';
+            }
+        }
+
+        function showPunchNotification(msg) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                background: #1a5f8b; color: white; padding: 12px 24px;
+                border-radius: 60px; font-weight: 600; font-size: 14px;
+                z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+                animation: fadeSlideIn 0.3s ease;
+                max-width: 90%;
+                text-align: center;
+            `;
+            notification.textContent = msg;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => notification.remove(), 500);
+            }, 2500);
+        }
+
+        // ---------- UPDATE STATS ----------
+        function updateStats() {
+            const total = employees.length;
+            const checkedIn = employees.filter(e => e.checkIn && !e.checkOut).length;
+            const active = checkedIn; // Active = currently checked in
+
+            employeeCountSpan.textContent = total;
+            checkedInCountSpan.textContent = checkedIn;
+            activeCountSpan.textContent = active;
+        }
+
+        // ---------- RENDER SIDEBAR ----------
+        function renderSidebar() {
+            const isAdmin = currentUser === 'admin';
+            
+            adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
+            
+            if (isAdmin) {
+                employeeGridSection.style.display = 'flex';
+                adminOnlyMessage.style.display = 'none';
+            } else {
+                employeeGridSection.style.display = 'none';
+                adminOnlyMessage.style.display = 'block';
+            }
+
+            if (!isAdmin) {
+                employeeGrid.innerHTML = '';
+                return;
+            }
+
+            employeeGrid.innerHTML = '';
+            if (employees.length === 0) {
+                employeeGrid.innerHTML = `
+                    <div class="employee-grid-empty">
+                        <i class="fas fa-user-plus"></i>
+                        <span>No employees registered yet.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            employees.forEach((emp) => {
+                const card = document.createElement('div');
+                
+                let statusClass = 'card-idle';
+                let statusDotClass = 'status-idle';
+                let timeText = '';
+                
+                if (emp.checkIn && !emp.checkOut) {
+                    statusClass = 'card-in';
+                    statusDotClass = 'status-in';
+                    timeText = formatTime(emp.checkIn);
+                } else if (emp.checkIn && emp.checkOut) {
+                    statusClass = 'card-out';
+                    statusDotClass = 'status-out';
+                    timeText = formatTime(emp.checkOut);
+                }
+
+                card.className = `emp-card ${statusClass}`;
+                card.innerHTML = `
+                    <div class="emp-avatar-small">${emp.initials || getInitials(emp.name)}</div>
+                    <div class="emp-name-small">${emp.name}</div>
+                    <div class="emp-role-small">${emp.role || 'No role'}</div>
+                    <span class="emp-status-dot ${statusDotClass}"></span>
+                    <div class="emp-time-small">${timeText || '--:--'}</div>
+                `;
+                employeeGrid.appendChild(card);
+            });
+        }
+
+        // ---------- UPDATE UI ----------
+        function updateUI() {
+            todayDateSpan.textContent = getTodayDate();
+            updateStats();
+            
+            if (currentUser) {
+                welcomeUser.textContent = currentUser;
+            } else {
+                welcomeUser.textContent = 'Employee';
+            }
+            
+            if (sidebar.classList.contains('open')) {
+                renderSidebar();
+                renderCalendar();
+            }
+        }
+
+        // ---------- CORE ACTIONS ----------
+        function addEmployee(name, role, email, mobile, address, password) {
+            const trimmedName = name.trim();
+            const trimmedRole = role.trim();
+            const trimmedEmail = email.trim();
+            const trimmedMobile = mobile.trim();
+            const trimmedAddress = address.trim();
+            const trimmedPassword = password.trim();
+
+            if (!trimmedName) {
+                showFeedback('Please enter a name.', false);
+                return false;
+            }
+
+            if (!trimmedPassword || trimmedPassword.length < 4) {
+                showFeedback('Password must be at least 4 characters.', false);
+                return false;
+            }
+
+            const exists = employees.some(e => e.name.toLowerCase() === trimmedName.toLowerCase());
+            if (exists) {
+                showFeedback(`"${trimmedName}" already exists.`, false);
+                return false;
+            }
+
+            const credExists = userCredentials.some(c => c.username.toLowerCase() === trimmedName.toLowerCase());
+            if (credExists) {
+                showFeedback(`Username "${trimmedName}" already taken.`, false);
+                return false;
+            }
+
+            const newEmp = {
+                id: generateId(),
+                name: trimmedName,
+                role: trimmedRole || 'Team member',
+                email: trimmedEmail || '',
+                mobile: trimmedMobile || '',
+                address: trimmedAddress || '',
+                initials: getInitials(trimmedName),
+                checkIn: null,
+                checkOut: null,
+                lastAction: null,
+                punchLocation: null
+            };
+
+            employees.push(newEmp);
+            userCredentials.push({
+                username: trimmedName,
+                password: trimmedPassword
+            });
+
+            updateUI();
+
+            signupNameInput.value = '';
+            signupRoleInput.value = '';
+            signupEmailInput.value = '';
+            signupMobileInput.value = '';
+            signupAddressInput.value = '';
+            signupPasswordInput.value = '';
+
+            showFeedback(`✅ ${trimmedName} registered successfully!`, true);
+
+            setTimeout(() => {
+                showLoginView();
+                loginUserInput.value = trimmedName;
+                loginPassInput.focus();
+            }, 800);
+
+            return true;
+        }
+
+        function clearAllEmployees() {
+            if (employees.length === 0) {
+                showFeedback('No employees to clear.', false);
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete all employees and their login credentials?')) {
+                employees = [];
+                userCredentials = [];
+                isCheckedIn = false;
+                checkInTime = null;
+                checkOutTime = null;
+                currentUser = null;
+                updatePunchUI();
+                updateUI();
+                showFeedback('All employees cleared.', true);
+                if (sidebar.classList.contains('open')) {
+                    renderSidebar();
+                    renderCalendar();
+                }
+            }
+        }
+
+        // ---------- LOGIN / LOGOUT ----------
+        function login(username, password) {
+            const trimmedUsername = username.trim();
+            const trimmedPassword = password.trim();
+
+            if (trimmedUsername === 'admin' && trimmedPassword === 'admin123') {
+                currentUser = 'admin';
+                isLoggedIn = true;
+                loginOverlay.classList.add('hidden');
+                loginError.classList.remove('show');
+                updatePunchUI();
+                updateUI();
+                return true;
+            }
+
+            const found = userCredentials.find(c =>
+                c.username.toLowerCase() === trimmedUsername.toLowerCase() &&
+                c.password === trimmedPassword
+            );
+
+            if (found) {
+                currentUser = trimmedUsername;
+                isLoggedIn = true;
+                loginOverlay.classList.add('hidden');
+                loginError.classList.remove('show');
+                
+                const emp = employees.find(e => e.name === trimmedUsername);
+                if (emp) {
+                    if (emp.checkIn && !emp.checkOut) {
+                        isCheckedIn = true;
+                        checkInTime = new Date(emp.checkIn);
+                        checkOutTime = null;
+                    } else if (emp.checkIn && emp.checkOut) {
+                        isCheckedIn = false;
+                        checkInTime = new Date(emp.checkIn);
+                        checkOutTime = new Date(emp.checkOut);
+                    } else {
+                        isCheckedIn = false;
+                        checkInTime = null;
+                        checkOutTime = null;
+                    }
+                }
+                updatePunchUI();
+                updateUI();
+                return true;
+            } else {
+                loginError.textContent = 'Invalid username or password.';
+                loginError.classList.add('show');
+                loginPassInput.value = '';
+                loginPassInput.focus();
+                return false;
+            }
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            currentUser = null;
+            isCheckedIn = false;
+            checkInTime = null;
+            checkOutTime = null;
+            updatePunchUI();
+            
+            loginOverlay.classList.remove('hidden');
+            loginError.classList.remove('show');
+            loginUserInput.value = '';
+            loginPassInput.value = '';
+            showLoginView();
+            updateUI();
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+            
+            if (locationWatchId) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                locationWatchId = null;
+            }
+        }
+
+        // ---------- EVENT LISTENERS ----------
+        loginBtn.addEventListener('click', function() {
+            const user = loginUserInput.value;
+            const pass = loginPassInput.value;
+            login(user, pass);
+        });
+
+        loginUserInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); loginBtn.click(); }
+        });
+        loginPassInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); loginBtn.click(); }
+        });
+
+        logoutBtn.addEventListener('click', function() {
+            logout();
+        });
+
+        goToSignupBtn.addEventListener('click', function() {
+            showSignupView();
+        });
+
+        backToLoginBtn.addEventListener('click', function() {
+            showLoginView();
+        });
+
+        menuBtn.addEventListener('click', function() {
+            openSidebar();
+        });
+
+        closeSidebarBtn.addEventListener('click', function() {
+            closeSidebar();
+        });
+
+        sidebarOverlay.addEventListener('click', function() {
+            closeSidebar();
+        });
+
+        sidebarClearAllBtn.addEventListener('click', function() {
+            closeSidebar();
+            clearAllEmployees();
+        });
+
+        calendarToggle.addEventListener('click', function() {
+            toggleCalendar();
+        });
+
+        prevMonthBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentMonth === 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else {
+                currentMonth--;
+            }
+            selectedDate = null;
+            selectedDateInfo.classList.remove('show');
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentMonth === 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else {
+                currentMonth++;
+            }
+            selectedDate = null;
+            selectedDateInfo.classList.remove('show');
+            renderCalendar();
+        });
+
+        punchInBtn.addEventListener('click', function() {
+            checkIn();
+        });
+
+        punchOutBtn.addEventListener('click', function() {
+            checkOut();
+        });
+
+        requestLocationBtn.addEventListener('click', function() {
+            requestLocationPermission();
+        });
+
+        signupBtn.addEventListener('click', function() {
+            const name = signupNameInput.value;
+            const role = signupRoleInput.value;
+            const email = signupEmailInput.value;
+            const mobile = signupMobileInput.value;
+            const address = signupAddressInput.value;
+            const password = signupPasswordInput.value;
+            addEmployee(name, role, email, mobile, address, password);
+        });
+
+        signupNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+        signupRoleInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+        signupEmailInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+        signupMobileInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+        signupAddressInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+        signupPasswordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); signupBtn.click(); }
+        });
+
+        clearAllBtn.addEventListener('click', function() {
+            clearAllEmployees();
+        });
+
+        // ---------- INITIAL LOAD ----------
+        employees = [];
+        userCredentials = [];
+        isLoggedIn = false;
+        currentUser = null;
+        isCheckedIn = false;
+        checkInTime = null;
+        checkOutTime = null;
+        
+        loginOverlay.classList.remove('hidden');
+        showLoginView();
+        updatePunchUI();
+        updateUI();
+
+        setTimeout(() => {
+            if (navigator.geolocation) {
+                requestLocationPermission();
+            }
+        }, 1000);
+
+        setInterval(() => {
+            if (isCheckedIn) {
+                punchTimeDisplay.textContent = 'In: ' + formatTime(checkInTime) + ' (running)';
+            } else if (checkOutTime) {
+                punchTimeDisplay.textContent = 'Out: ' + formatTime(checkOutTime);
+            }
+        }, 1000);
+
+        window.__attend = { employees, userCredentials, login, logout, addEmployee, clearAllEmployees, checkIn, checkOut };
+    })();
+</script>
+</body>
+</html>
